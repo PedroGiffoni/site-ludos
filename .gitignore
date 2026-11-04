@@ -1,0 +1,22 @@
+# Acervo original local; os derivados utilizados estão em site/public/assets/.
+/videos/
+/fotos/
+/fontes/
+/tmp/
+
+# Dependências e saídas reproduzíveis.
+node_modules/
+dist/
+dist-element/
+.vite/
+coverage/
+
+# Configurações e credenciais locais.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.log
+.DS_Store
+Thumbs.db
