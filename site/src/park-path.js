@@ -10,7 +10,7 @@ export function parkPose(stops,scroll){
     const timeline=clamp((scroll-a.at)/(b.at-a.at));
     // Tube exits hold briefly, then descend without the takeoff arc of a platform.
     const tubeExit=(a.kind==='slide'||a.kind==='ramp')&&b.kind==='jump';
-    const t=tubeExit?clamp((timeline-.06)/.88):b.kind==='jump'?clamp((timeline-.14)/.72):timeline;
+    const t=tubeExit?clamp((timeline-.06)/.88):b.kind==='jump'?clamp((timeline-.14)/(b.toy==='tube-entry'?.86:.72)):timeline;
     const smooth=t*t*(3-2*t);
     if(b.kind==='ramp'){
       const point=rampPoint(a,b,t);

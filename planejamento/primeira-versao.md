@@ -153,3 +153,7 @@ O início do percurso usa a posição do personagem escolhido na composição da
 O balanço ampliado no desktop agora encosta com a base real da geometria no início do rodapé. A escada e a rampa abertas são reposicionadas como um conjunto para que sua base coincida com o início da seção de cuidado, na mudança de cor. As três âncoras do personagem (patamar, quique e saída da rampa) recebem o mesmo deslocamento, preservando os contatos. O alinhamento usa os limites reais da malha, sem estimar uma margem visual. O balanço móvel preserva o espaço próprio já aprovado.
 
 Dezoito testes passaram, incluindo alinhamento da base sem alteração de escala. Build concluído. Ajustes locais na developer-3.
+
+## Entradas dos tubos sem plataforma
+
+Removidos os blocos e tampos das duas âncoras imediatamente anteriores aos tubos fechados. Essas âncoras continuam definindo a boca do tubo, mas não geram brinquedos sobrepostos. O movimento de chegada não mantém a pausa de aterrissagem de uma plataforma; segue direto para dentro do cilindro. Mantido o patamar próprio do escorregador com escada. Dezenove testes passaram e build concluído. Alteração local na developer-3.

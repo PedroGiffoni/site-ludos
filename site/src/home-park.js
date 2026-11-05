@@ -80,6 +80,7 @@ export class HomePark{
     const rampEntry={...top,at:start+span*.157,x:right-(mobile?9:26),y:top.y,kind:'jump',maneuver:'flip',lift:mobile?55:90,toy:'ramp-entry'};
     const rampExit={...top,at:start+span*.205,x:left,y:start+span*.205+height*.55,kind:'ramp',swing:mobile?5:16,toy:'ramp-exit'};
     this.stops.splice(3,0,rampEntry,rampExit);
+    this.stops.forEach((stop,i)=>{if(this.stops[i+1]?.kind==='slide')stop.toy='tube-entry';});
     const unit=100;
     const actorHalfHeight=-this.actorFootY*small*unit;
     this.toys=[];
@@ -88,7 +89,7 @@ export class HomePark{
       const x=stop.x/unit,y=(stop.y-this.actorFootY*stop.scale*unit)/unit;
       const firstPart=this.group.children.length;
       let toy;
-      if(stop.toy==='ramp-entry'||stop.toy==='ramp-exit')return;
+      if(stop.toy==='ramp-entry'||stop.toy==='ramp-exit'||stop.toy==='tube-entry')return;
       if(stop.toy==='swing'){
         this.swing=createPlaygroundSwing(stop,this.actorFootY,this.materials,mobile,stop.swingScale??1);
         if(!mobile){

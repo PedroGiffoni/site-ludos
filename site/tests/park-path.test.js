@@ -110,3 +110,13 @@ test('swing keeps oscillating without scroll and its rider stays attached to the
   }
 });
 
+
+test('tube entrances keep moving into the cylinder instead of waiting on a platform',()=>{
+  const route=[stops[0],{...stops[1],toy:'tube-entry'},stops[2]];
+  const approaching=parkPose(route,480),mouth=parkPose(route,500),inside=parkPose(route,510);
+  assert.ok(approaching.y<mouth.y);
+  assert.ok(inside.y>mouth.y);
+  assert.equal(mouth.x,route[1].x);assert.equal(mouth.y,route[1].y);
+  assert.ok(Math.abs(parkPose(route,500-.001).y-parkPose(route,500+.001).y)<.01);
+});
+
