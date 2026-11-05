@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {createEnclosedSlide,createPlaygroundSlide,createPlaygroundSwing} from './park-models.js';
+import {createEnclosedSlide,createPlaygroundSlide,createPlaygroundSwing,groundPlayground} from './park-models.js';
 import {parkPose,swingMotion} from './park-path.js';
 
 export class HomePark{
@@ -61,6 +61,14 @@ export class HomePark{
     // Replace the first ball with one complete playground, including a bounce into its ramp.
     this.stops.forEach((stop,i)=>stop.propIndex=i-1);
     const lastStop=this.stops.at(-1);lastStop.toy='swing';
+    if(!mobile){
+      const size=width>=1200?1.6:1.25;
+      lastStop.swingScale=size;
+      lastStop.scale*=size;
+      lastStop.x=width-(1.65*size*.5*100+24);
+      const contactBottom=document.querySelector('#contato').getBoundingClientRect().bottom+scrollY;
+      lastStop.y=contactBottom-24-.65*size*100+this.actorFootY*lastStop.scale*100;
+    }
     if(mobile){
       const groupTop=document.querySelector('#contato>img').getBoundingClientRect().top+scrollY;
       lastStop.x=width/2;
@@ -82,11 +90,18 @@ export class HomePark{
       let toy;
       if(stop.toy==='ramp-entry'||stop.toy==='ramp-exit')return;
       if(stop.toy==='swing'){
-        this.swing=createPlaygroundSwing(stop,this.actorFootY,this.materials,mobile);
+        this.swing=createPlaygroundSwing(stop,this.actorFootY,this.materials,mobile,stop.swingScale??1);
+        if(!mobile){
+          const floor=document.querySelector('#contato').getBoundingClientRect().bottom+scrollY;
+          stop.y+=groundPlayground(this.swing.group,floor);
+        }
         this.group.add(this.swing.group);this.toys.push(this.swing.group);return;
       }
       if(stop.toy==='playground'){
         toy=createPlaygroundSlide(stop,rampEntry,rampExit,this.actorFootY,this.materials,mobile);
+        const floor=document.querySelector('#cuidado').getBoundingClientRect().top+scrollY;
+        const offset=groundPlayground(toy,floor);
+        for(const anchor of [stop,rampEntry,rampExit])anchor.y+=offset;
         this.group.add(toy);this.toys.push(toy);return;
       }
       if(stop.kind==='slide'){

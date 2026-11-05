@@ -147,3 +147,9 @@ Verificados no navegador: oscilação sem rolagem em capturas sucessivas, posiç
 A cada entrada na página inicial, o percurso alterna Fred (amarelo) e Amora (rosa), começando por Fred quando não há histórico. A última escolha é persistida no armazenamento local do navegador; páginas internas não consomem uma alternância. O retorno à home restaurada pelo cache de navegação também troca o personagem. Se o navegador bloquear o armazenamento, a experiência continua com Fred.
 
 O início do percurso usa a posição do personagem escolhido na composição da abertura. Escala uniforme e contato são recalculados com os limites reais de cada modelo para acomodar ambos em plataformas, tubos e balanço. A troca por restauração da página libera geometrias e materiais do parque anterior. Verificada alternância no navegador por recarregamento e ambos os modelos no balanço; console sem erros. Dezessete testes passaram e build concluído. Trabalho local, ainda sem novo commit/deploy.
+
+## Brinquedos apoiados nas divisões visuais
+
+O balanço ampliado no desktop agora encosta com a base real da geometria no início do rodapé. A escada e a rampa abertas são reposicionadas como um conjunto para que sua base coincida com o início da seção de cuidado, na mudança de cor. As três âncoras do personagem (patamar, quique e saída da rampa) recebem o mesmo deslocamento, preservando os contatos. O alinhamento usa os limites reais da malha, sem estimar uma margem visual. O balanço móvel preserva o espaço próprio já aprovado.
+
+Dezoito testes passaram, incluindo alinhamento da base sem alteração de escala. Build concluído. Ajustes locais na developer-3.

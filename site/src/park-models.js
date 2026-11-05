@@ -68,7 +68,7 @@ export function createPlaygroundSlide(top,entry,exit,footY,materials,mobile){
     const upper=new THREE.Vector3(ladderX+side*width*.20,-ty+.4,z);
     const lower=new THREE.Vector3(ladderX+side*width*.20+width*.30,-bottom,z);
     bar(upper,lower,.045,'green');
-    add(new RoundedBoxGeometry(.25,.09,.23,3,.035),'ink',lower.x,bottom+.04,z);
+    add(new RoundedBoxGeometry(.25,.09,.23,3,.035),'ink',lower.x,bottom+.075,z);
     const supportX=tx-width*.28;
     bar(new THREE.Vector3(supportX,-ty,.72),new THREE.Vector3(supportX,-bottom,.72),.045,'green');
   }
@@ -101,7 +101,7 @@ export function createPlaygroundSlide(top,entry,exit,footY,materials,mobile){
   for(const fraction of [.42,.76]){
     const p=centres[Math.round(fraction*100)];
     bar(new THREE.Vector3(p.x,-bottom,.65),new THREE.Vector3(p.x,p.y,.65),.04,'green');
-    add(new RoundedBoxGeometry(.30,.10,.40,3,.04),'cream',p.x,bottom+.06,.65);
+    add(new RoundedBoxGeometry(.30,.10,.40,3,.04),'cream',p.x,bottom+.07,.65);
   }
   return group;
 }
@@ -111,7 +111,7 @@ export function createPlaygroundSlide(top,entry,exit,footY,materials,mobile){
 
 
 
-export function createPlaygroundSwing(stop,footY,materials,mobile){
+export function createPlaygroundSwing(stop,footY,materials,mobile,size=1){
   const group=new THREE.Group();group.name='Balanço Ludos com estrutura e assento articulado';
   const width=mobile?.88:1.65,length=mobile?1.25:2;
   const x=stop.x/100,seatY=-(stop.y/100-footY*stop.scale),z=1.2;
@@ -139,5 +139,18 @@ export function createPlaygroundSwing(stop,footY,materials,mobile){
     for(const depth of [-.20,.20])bar(pivot,new THREE.Vector3(ropeX,-length+.28,0),new THREE.Vector3(ropeX,-length,depth),.012,'ink');
     add(pivot,new THREE.SphereGeometry(.027,20,12),'metal',new THREE.Vector3(ropeX,-length+.02,.22));
   }
-  return {group,pivot,length};
+  // Scale every part uniformly around the resting seat, including the pendulum length.
+  const anchor=new THREE.Vector3(x,seatY,z);
+  for(const part of group.children)part.position.sub(anchor);
+  group.position.copy(anchor);group.scale.setScalar(size);
+  return {group,pivot,length:length*size};
+}
+
+
+// Models use world units; section boundaries use document pixels (100 px per unit).
+export function groundPlayground(group,floorY){
+  const lowest=new THREE.Box3().setFromObject(group).min.y;
+  const offset=floorY+lowest*100;
+  group.position.y-=offset/100;
+  return offset;
 }

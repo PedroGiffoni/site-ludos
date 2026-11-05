@@ -37,3 +37,14 @@ test('open playground remains behind the character throughout a full somersault'
   actor.traverse(part=>part.geometry?.dispose());
   Object.values(materials).forEach(material=>material.dispose());
 });
+
+test('playground grounding puts its base on the section boundary without changing its size',async()=>{
+  const {groundPlayground}=await import('../src/park-models.js');
+  const group=new THREE.Group();const mesh=new THREE.Mesh(new THREE.BoxGeometry(2,3,1),new THREE.MeshStandardMaterial());group.add(mesh);group.position.set(4,-12,1);group.scale.setScalar(1.6);
+  const before=new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3());
+  const offset=groundPlayground(group,1200);
+  assert.ok(Math.abs(-new THREE.Box3().setFromObject(group).min.y*100-1200)<1e-8);
+  assert.ok(new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3()).distanceTo(before)<1e-8);
+  assert.ok(Math.abs(offset+240)<1e-5);
+  mesh.geometry.dispose();mesh.material.dispose();
+});
