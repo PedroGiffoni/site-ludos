@@ -1,50 +1,10 @@
 import * as THREE from 'three';
-import silhouettes from './characters.json';
+import {createCharacterModel as character} from './character-models.js';
 import { clamp, sampleFrames } from './scene-math.js';
+import {HomePark} from './home-park.js';
 
-const COLORS = { fred: '#FFD86E', amora: '#F3B4B4', edy: '#FBB277', jr: '#8DD1DC', zoe: '#AFC8A0' };
 const BASES = [[-1.8, -.05, .7], [-3.55, -.72, 1.45], [.65, .5, -.15], [.75, -1.02, 1.9], [3.2, -.4, .8]];
 const PHASES={hero:0,universe:1,space:2,courses:3,neuro:4,personality:5,therapy:6,assessment:7,family:8};
-
-function contains(point, points) {
-  let inside = false;
-  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-    const [xi, yi] = points[i], [xj, yj] = points[j];
-    if ((yi > point[1]) !== (yj > point[1]) && point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi) inside = !inside;
-  }
-  return inside;
-}
-function path(points, Path = THREE.Shape) {
-  const result = new Path();
-  const first = points[0], last = points.at(-1);
-  result.moveTo((first[0] + last[0]) / 2, (first[1] + last[1]) / 2);
-  points.forEach((point, i) => {
-    const next = points[(i + 1) % points.length];
-    result.quadraticCurveTo(point[0], point[1], (point[0] + next[0]) / 2, (point[1] + next[1]) / 2);
-  });
-  result.closePath();
-  return result;
-}
-
-function character(name) {
-  const group = new THREE.Group();
-  const data = silhouettes[name];
-  [['body', COLORS[name], .34, .075, 0], ['cream', '#FFF1CC', .025, .012, .43], ['dark', '#30382E', .07, .018, .43]].forEach(([layer, color, depth, bevel, z]) => {
-    const loops = data[layer];
-    const material = new THREE.MeshStandardMaterial({ color, roughness: .67, metalness: 0 });
-    loops.filter(loop => loop.area > 0).forEach(loop => {
-      const shape = path(loop.points);
-      loops.filter(hole => hole.area < 0 && contains(hole.points[0], loop.points)).forEach(hole => shape.holes.push(path(hole.points, THREE.Path)));
-      const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: bevel, bevelThickness: bevel, curveSegments: 3 });
-      geometry.computeVertexNormals();
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.z = z;
-      group.add(mesh);
-    });
-  });
-  group.name = name;
-  return group;
-}
 
 export class LudosScene extends HTMLElement {
   static observedAttributes = ['motion-mode', 'progress', 'scene-id', 'chapter-progress'];
@@ -63,6 +23,7 @@ export class LudosScene extends HTMLElement {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFShadowMap;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
     this.append(this.renderer.domElement);
     this.scene = new THREE.Scene();
@@ -70,6 +31,7 @@ export class LudosScene extends HTMLElement {
     this.camera.position.set(0, 0, 30);
     this.scene.add(new THREE.HemisphereLight('#fff9e5', '#698461', 1.8));
     const key = new THREE.DirectionalLight('#fff4db', 2.1); key.position.set(-7, 9, 13); this.scene.add(key);
+    key.castShadow=true;key.shadow.mapSize.set(innerWidth<761?512:1024,innerWidth<761?512:1024);Object.assign(key.shadow.camera,{left:-12,right:12,top:10,bottom:-10,near:.5,far:45});key.shadow.bias=-.0005;key.shadow.normalBias=.035;
     const fill = new THREE.DirectionalLight('#e8f5df', .9); fill.position.set(7, 1, 6); this.scene.add(fill);
     this.root = new THREE.Group(); this.scene.add(this.root);
     this.friends = ['fred', 'amora', 'edy', 'jr', 'zoe'].map((name, i) => {
@@ -111,6 +73,8 @@ export class LudosScene extends HTMLElement {
       const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(x,y,z),new THREE.Vector3((x+next[0])*.65,(y+next[1])*.65,-1),new THREE.Vector3(...next));
       const edge=new THREE.Mesh(new THREE.TubeGeometry(curve,25,.025,6,false),new THREE.MeshStandardMaterial({color:'#709a82',roughness:.8}));this.assessmentProps.add(edge);
     });
+    this.isHome=!!document.querySelector('.hero#inicio');
+    if(this.isHome)this.homePark=new HomePark(this.scene,character('edy'));
     this.clockStart = performance.now();
     this.pointer = { x: 0, y: 0 };
     this.requestRender = () => { if (!this.raf && !document.hidden) this.raf = requestAnimationFrame(this.tick); };
@@ -118,7 +82,7 @@ export class LudosScene extends HTMLElement {
       this.raf = 0;
       if (!this.renderer || document.hidden) return;
       this.draw(now);
-      if (!this.reduced && this.visibleScene) this.requestRender();
+      if (!this.reduced && this.visibleScene && (!this.isHome || this.root.visible)) this.requestRender();
     };
     const options = { signal: this.abort.signal, passive: true };
     window.addEventListener('scroll', this.requestRender, options);
@@ -136,7 +100,7 @@ export class LudosScene extends HTMLElement {
   resize() {
     if (!this.renderer) return;
     const own=this.getAttribute('layout')==='contained'?this.getBoundingClientRect():null;
-    this.width = own?Math.max(1,own.width):innerWidth; this.height = own?Math.max(1,own.height):innerHeight;
+    this.width = own?Math.max(1,own.width):document.documentElement.clientWidth; this.height = own?Math.max(1,own.height):innerHeight;
     this.renderer.setSize(this.width, this.height);
     this.camera.left = -this.width/200; this.camera.right = this.width/200;
     this.camera.top = this.height/200; this.camera.bottom = -this.height/200; this.camera.updateProjectionMatrix();
@@ -145,6 +109,7 @@ export class LudosScene extends HTMLElement {
       const story=element.closest('.service-story');
       return { element, at:r.top+scrollY+r.height/2-this.height*.52, holdUntil:story&&this.width>760?story.getBoundingClientRect().bottom+scrollY-this.height*.9:null, x:r.left+r.width/2, y:this.height*.52, scale:r.width / 980, phase:PHASES[element.dataset.scene] ?? 0, alpha:1 };
     });
+    if(this.homePark){const rect=document.querySelector('.hero-art').getBoundingClientRect();this.homePark.resize(this.width,this.height,{left:rect.left,top:rect.top+scrollY,width:rect.width,height:rect.height});}
     this.requestRender();
   }
   draw(now) {
@@ -154,6 +119,8 @@ export class LudosScene extends HTMLElement {
     const anchors=this.anchors;
     const contained=this.getAttribute('layout')==='contained';
     if(!anchors?.length&&!contained)return;
+    if(this.isHome&&!this.reduced&&!contained){this.drawHome(y,time);return;}
+    if(this.homePark){this.homePark.group.visible=false;this.homePark.actorGroup.visible=false;}
     const mobile=this.width<761;
     const frames=[];
     anchors.forEach((original,i)=>{
@@ -209,6 +176,23 @@ export class LudosScene extends HTMLElement {
       if(this.assessmentProps.visible){this.assessmentProps.rotation.set(this.reduced?0:Math.sin(time*.3)*.08,this.reduced?0:chapter*.35, this.reduced?0:Math.sin(time*.2)*.05);}
       if(!this.reduced)this.props.rotation.z=Math.sin(time*.5)*.08;
     }
+    this.renderer.render(this.scene,this.camera);
+  }
+  drawHome(scroll,time){
+    const hero=document.querySelector('.hero-art').getBoundingClientRect();
+    const active=this.homePark.draw(scroll,false);
+    this.root.visible=hero.bottom>0&&hero.top<this.height;
+    this.root.position.set((hero.left+hero.width/2-this.width/2)/100,(this.height/2-(hero.top+hero.height*.51))/100,0);
+    this.root.scale.setScalar(hero.width/980*1.05);
+    this.root.rotation.set(-.08,-.13+this.pointer.x*.12,0);
+    this.friends.forEach((friend,i)=>{
+      friend.visible=i!==2||!active;
+      friend.position.set(...BASES[i]);friend.position.y+=Math.sin(time*1.3+i*1.4)*.055;
+      friend.scale.setScalar(friend.userData.scale);
+      friend.rotation.set(0,Math.sin(time*.7+i)*.06,(i-2)*.055);
+    });
+    this.props.visible=true;this.courseOrbits.visible=false;this.therapyProps.visible=false;this.assessmentProps.visible=false;
+    this.visibleScene=this.root.visible||active;
     this.renderer.render(this.scene,this.camera);
   }
   disconnectedCallback() { this.dispose(); }

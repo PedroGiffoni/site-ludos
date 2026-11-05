@@ -5,10 +5,12 @@ import {pages} from './pages.js';
 import {clamp} from './scene-math.js';
 import './course-style.css';
 import './service-style.css';
+import './home-park.css';
 import {serviceMotion,setupCognitiveMap} from './service-motion.js';
 
 const pathname = location.pathname.replace(/\/$/,'') || '/';
 const page = pages[pathname];
+document.documentElement.classList.toggle('home-park',pathname==='/');
 if(page){
   document.title=page.title;
   document.querySelector('#conteudo').innerHTML=page.html;

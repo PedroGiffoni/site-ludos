@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "models": "node scripts/export-models.mjs",
     "dev": "vite --host 127.0.0.1 --port 5173",
     "build": "vite build && node scripts/prerender.mjs && vite build --config vite.element.config.js",
     "preview": "vite preview --host 127.0.0.1 --port 5173",

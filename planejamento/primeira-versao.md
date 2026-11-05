@@ -89,3 +89,33 @@ Direção aprovada pelo usuário e implementada em `site/src/service-pages.js`, 
 - A coreografia usa rolagem nativa; no celular, os capítulos são verticais. Movimento reduzido retira a fixação, parallax e animações contínuas, mantendo conteúdo e ações.
 
 Conferidos no navegador desktop/celular: cenas das duas páginas, mapa alternando Memória/Linguagem e painel correspondente, modo reduzido, ausência de overflow horizontal e links WhatsApp específicos de psicoterapia. Nenhum erro ou aviso retornado na conferência final do navegador. Textos descrevem um processo geral; detalhes de atendimento continuam sujeitos à revisão clínica antes de publicação. A Wix não foi alterada.
+
+## Parque contínuo na página inicial — developer-1
+
+Edy sai da composição da abertura e acompanha a página por um corredor lateral de brinquedos. O percurso é calculado pela posição de rolagem, sem sair lateralmente e reaparecer entre as seções. Inclui saltos entre plataformas e bolas, arcos e dois trechos de tobogã com bordas. Ao subir a página, o mesmo percurso é refeito em sentido inverso.
+
+Implementação em `site/src/home-park.js`, `park-path.js` e `home-park.css`, integrada ao renderer existente. A escala do personagem é uniforme para preservar as proporções. A trajetória tem continuidade nas junções; três testes específicos cobrem aterrissagens, salto/reversão e extremos do escorregador, totalizando sete testes.
+
+O conteúdo da página inicial reserva espaço à direita para o parque, com corredor menor no celular. A alternativa reduzida mantém composições estáticas e restaura a largura de leitura. Fora da abertura, o parque renderiza por eventos de rolagem, sem loop contínuo enquanto o visitante está parado. Páginas internas continuam com suas cenas próprias.
+
+Verificação visual local em desktop e celular: percurso, objetos, ausência de corte lateral do personagem após ajuste, ausência de overflow da página e dos cartões de serviço, controle de movimento reduzido e console sem erros. A prévia não equivale à integração da rolagem na Wix, que segue pendente. Alterações de trabalho feitas na branch `developer-1`.
+
+## Modelos vetoriais e acrobacias — developer-1
+
+Os cinco personagens agora usam curvas do arquivo original `elementos/ELEMENTOS_LUDOS.ai`, substituindo o contorno obtido por imagem. Corpos têm extrusão, bordas arredondadas e acabamento físico; rosto e acessórios são peças separadas. A escala permanece uniforme. Arquivos GLB exportados em `site/public/models/` podem ser inspecionados em `/modelos.html`, com arraste, zoom, seleção e botões de acrobacia.
+
+O parque recebeu plataformas arredondadas, bolas com detalhes, tobogãs abertos com bordas e suportes. A trajetória alterna cambalhotas, giros e estrelinhas completos, com reação dos acessórios e olhos na aterrissagem. Cinco testes de trajetória mais quatro testes existentes cobrem continuidade, extremos e rotações. A conferência visual incluiu carregamento dos cinco GLBs, desktop e celular; corrigida a largura do canvas e margem móvel para evitar corte lateral. Nenhuma alteração publicada na Wix.
+
+Regeneração: `prepare-vector-characters.py` requer PyMuPDF; `npm run models` exporta os GLBs a partir do JSON vetorial. O site usa o JSON já gerado e não depende de Python para executar. Os GLBs são carregados sob demanda apenas no ateliê.
+
+## Tubos fechados com acrílico
+
+Os dois tobogãs agora têm seção circular completa: casco traseiro com revestimento interno, janela frontal curva transparente, vedações, colares e parafusos nas emendas. Reflexos alongados e material com clearcoat dão leitura de acrílico. O personagem percorre o eixo da tubulação, atrás do painel transparente, com escala uniforme suavemente reduzida durante a descida. A frente transparente não projeta sombra opaca sobre o boneco. Plataformas têm pés e ferragens; bolas têm bases em camadas e detalhes em relevo. O corredor móvel foi ampliado para acomodar o diâmetro dos tubos.
+
+Conferidos no navegador: personagem visível dentro dos tubos em desktop e celular, sem erros de console. Dez testes passaram, incluindo fechamento das junções entre casco e acrílico em curvas; build concluído com aviso já conhecido do tamanho do módulo Three.js. Trabalho local na developer-1.
+
+## Pousos e pausas nos apoios
+
+Altura dos tampos calculada pela base real da geometria de Edy, com plataformas alargadas para apoiar os pés. Blocos, bolas e personagem compartilham o mesmo plano de profundidade. Para as bolas, o contato usa os vértices do personagem contra a superfície esférica, considerando o espaço entre os pés. Os saltos reservam 14% do intervalo antes da saída e 14% após a chegada para repouso no apoio. A curva vertical começa subindo e termina descendo; as rotações só ocorrem após o impulso e terminam antes da aterrissagem. Tobogãs preservados.
+
+Conferido visualmente o repouso sobre o tampo no navegador. Onze testes passaram e build concluído. Trabalho local na developer-1.

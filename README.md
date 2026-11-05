@@ -38,3 +38,7 @@ O acervo bruto de fotos, vídeos e fontes e os temporários permanecem locais. O
 - Personalidade e Psicopatologia — inscrições encerradas, página informativa e contato para participantes.
 
 Esta versão está em desenvolvimento. A publicação na Wix, validação clínica do conteúdo, dados profissionais finais e teste autenticado de compra/acesso de aluno permanecem pendentes. Consulte `planejamento/primeira-versao.md`.
+
+## Modelos 3D
+
+A página `/modelos.html` permite inspecionar os cinco personagens, girar com arraste, testar acrobacias e baixar arquivos GLB. Para reexportar os modelos, execute `npm run models` dentro de `site/`. A fonte atual é `src/vector-characters.json`, extraída das curvas originais de `elementos/ELEMENTOS_LUDOS.ai` pelo script `prepare-vector-characters.py` (requer PyMuPDF). Python só é necessário para regenerar essa fonte.
