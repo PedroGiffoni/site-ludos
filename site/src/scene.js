@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {createCharacterModel as character} from './character-models.js';
 import { clamp, sampleFrames } from './scene-math.js';
 import {HomePark} from './home-park.js';
+import {nextParkCharacter} from './park-character.js';
 
 const BASES = [[-1.8, -.05, .7], [-3.55, -.72, 1.45], [.65, .5, -.15], [.75, -1.02, 1.9], [3.2, -.4, .8]];
 const PHASES={hero:0,universe:1,space:2,courses:3,neuro:4,personality:5,therapy:6,assessment:7,family:8};
@@ -23,15 +24,15 @@ export class LudosScene extends HTMLElement {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'low-power' });
     this.renderer.setClearColor(0x000000, 0);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFShadowMap;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+    this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.VSMShadowMap;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, innerWidth<761?1.75:2));
     this.append(this.renderer.domElement);
     this.scene = new THREE.Scene();
     this.camera = new THREE.OrthographicCamera(-8, 8, 5, -5, .1, 100);
     this.camera.position.set(0, 0, 30);
     this.scene.add(new THREE.HemisphereLight('#fff9e5', '#698461', 1.8));
     const key = new THREE.DirectionalLight('#fff4db', 2.1); key.position.set(-7, 9, 13); this.scene.add(key);
-    key.castShadow=true;key.shadow.mapSize.set(innerWidth<761?512:1024,innerWidth<761?512:1024);Object.assign(key.shadow.camera,{left:-12,right:12,top:10,bottom:-10,near:.5,far:45});key.shadow.bias=-.0005;key.shadow.normalBias=.035;
+    key.castShadow=true;key.shadow.mapSize.set(innerWidth<761?1024:2048,innerWidth<761?1024:2048);Object.assign(key.shadow.camera,{left:-12,right:12,top:10,bottom:-10,near:.5,far:45});key.shadow.bias=-.0002;key.shadow.normalBias=.025;key.shadow.radius=4;key.shadow.blurSamples=8;
     const fill = new THREE.DirectionalLight('#e8f5df', .9); fill.position.set(7, 1, 6); this.scene.add(fill);
     this.root = new THREE.Group(); this.scene.add(this.root);
     this.friends = ['fred', 'amora', 'edy', 'jr', 'zoe'].map((name, i) => {
@@ -74,7 +75,7 @@ export class LudosScene extends HTMLElement {
       const edge=new THREE.Mesh(new THREE.TubeGeometry(curve,25,.025,6,false),new THREE.MeshStandardMaterial({color:'#709a82',roughness:.8}));this.assessmentProps.add(edge);
     });
     this.isHome=!!document.querySelector('.hero#inicio');
-    if(this.isHome)this.homePark=new HomePark(this.scene,character('edy'));
+    if(this.isHome)this.selectParkCharacter();
     this.clockStart = performance.now();
     this.pointer = { x: 0, y: 0 };
     this.requestRender = () => { if (!this.raf && !document.hidden) this.raf = requestAnimationFrame(this.tick); };
@@ -82,10 +83,11 @@ export class LudosScene extends HTMLElement {
       this.raf = 0;
       if (!this.renderer || document.hidden) return;
       this.draw(now);
-      if (!this.reduced && this.visibleScene && (!this.isHome || this.root.visible)) this.requestRender();
+      if (!this.reduced && this.visibleScene && (!this.isHome || this.root.visible || this.homePark?.isSwinging)) this.requestRender();
     };
     const options = { signal: this.abort.signal, passive: true };
     window.addEventListener('scroll', this.requestRender, options);
+    window.addEventListener('pageshow',event=>{if(event.persisted&&this.isHome){this.selectParkCharacter();this.resize();}}, {signal:this.abort.signal});
     window.addEventListener('pointermove', event => { this.pointer.x = event.clientX / innerWidth - .5; this.pointer.y = event.clientY / innerHeight - .5; this.requestRender(); }, options);
     document.addEventListener('visibilitychange', () => { if(document.hidden){cancelAnimationFrame(this.raf);this.raf=0;}else this.requestRender(); }, {signal:this.abort.signal});
     this.renderer.domElement.addEventListener('webglcontextlost', event => { event.preventDefault();document.documentElement.classList.remove('has-3d');cancelAnimationFrame(this.raf);this.raf=0; }, {signal:this.abort.signal});
@@ -96,6 +98,16 @@ export class LudosScene extends HTMLElement {
     this.resize();
     document.documentElement.classList.add('has-3d');
     this.dispatchEvent(new CustomEvent('ludos-ready', {bubbles:true}));
+  }
+  selectParkCharacter(){
+    let selected='fred';
+    try{selected=nextParkCharacter(window.localStorage);}catch{}
+    this.parkFriendIndex=selected==='fred'?0:1;
+    const actor=character(selected);
+    actor.userData.heroBase=BASES[this.parkFriendIndex];
+    actor.userData.heroScale=this.friends[this.parkFriendIndex].userData.scale;
+    this.homePark?.dispose();
+    this.homePark=new HomePark(this.scene,actor);
   }
   resize() {
     if (!this.renderer) return;
@@ -180,13 +192,13 @@ export class LudosScene extends HTMLElement {
   }
   drawHome(scroll,time){
     const hero=document.querySelector('.hero-art').getBoundingClientRect();
-    const active=this.homePark.draw(scroll,false);
+    const active=this.homePark.draw(scroll,false,time);
     this.root.visible=hero.bottom>0&&hero.top<this.height;
     this.root.position.set((hero.left+hero.width/2-this.width/2)/100,(this.height/2-(hero.top+hero.height*.51))/100,0);
     this.root.scale.setScalar(hero.width/980*1.05);
     this.root.rotation.set(-.08,-.13+this.pointer.x*.12,0);
     this.friends.forEach((friend,i)=>{
-      friend.visible=i!==2||!active;
+      friend.visible=i!==this.parkFriendIndex||!active;
       friend.position.set(...BASES[i]);friend.position.y+=Math.sin(time*1.3+i*1.4)*.055;
       friend.scale.setScalar(friend.userData.scale);
       friend.rotation.set(0,Math.sin(time*.7+i)*.06,(i-2)*.055);

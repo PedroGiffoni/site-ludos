@@ -16,3 +16,24 @@ test('front acrylic and rear shell meet along the same seams on a curved tube',(
   assert.ok([...f.array,...front.attributes.normal.array].every(Number.isFinite));
   front.dispose();rear.dispose();
 });
+
+test('open playground remains behind the character throughout a full somersault',async()=>{
+  const {createPlaygroundSlide}=await import('../src/park-models.js');
+  const {createCharacterModel}=await import('../src/character-models.js');
+  const materials=Object.fromEntries(['cream','green','ink','yellow','orange','pink','blue'].map(name=>[name,new THREE.MeshStandardMaterial()]));
+  const actor=createCharacterModel('edy');
+  const foot=new THREE.Box3().setFromObject(actor).min.y;
+  for(const mobile of [false,true]){
+    const top={x:900,y:800,scale:mobile?.21:.37};
+    const playground=createPlaygroundSlide(top,{...top,x:880},{...top,x:860,y:1100,swing:10},foot,materials,mobile);
+    const front=new THREE.Box3().setFromObject(playground).max.z;
+    actor.position.z=1.2;actor.scale.setScalar(top.scale);
+    for(let i=0;i<=32;i++){
+      actor.rotation.x=i/32*Math.PI*2;
+      assert.ok(new THREE.Box3().setFromObject(actor).min.z>front);
+    }
+    playground.traverse(part=>part.geometry?.dispose());
+  }
+  actor.traverse(part=>part.geometry?.dispose());
+  Object.values(materials).forEach(material=>material.dispose());
+});

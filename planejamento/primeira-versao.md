@@ -119,3 +119,31 @@ Conferidos no navegador: personagem visível dentro dos tubos em desktop e celul
 Altura dos tampos calculada pela base real da geometria de Edy, com plataformas alargadas para apoiar os pés. Blocos, bolas e personagem compartilham o mesmo plano de profundidade. Para as bolas, o contato usa os vértices do personagem contra a superfície esférica, considerando o espaço entre os pés. Os saltos reservam 14% do intervalo antes da saída e 14% após a chegada para repouso no apoio. A curva vertical começa subindo e termina descendo; as rotações só ocorrem após o impulso e terminam antes da aterrissagem. Tobogãs preservados.
 
 Conferido visualmente o repouso sobre o tampo no navegador. Onze testes passaram e build concluído. Trabalho local na developer-1.
+
+## Saída dos tobogãs — developer-2
+
+A transição após cada trecho de tubo agora faz uma pausa curta e segue uma descida suave e monotônica até o próximo apoio. Não aplica impulso vertical, cambalhota ou estrelinha nessa saída. A entrada e a trajetória dentro dos cilindros permanecem iguais, assim como os saltos entre plataformas. Teste específico cobre as duas saídas, verificando pausa, ausência de subida e rotações, continuidade e chegada; 12 testes passaram e build concluído.
+
+## Escorregador com escada — developer-2
+
+A primeira bola foi substituída por um parquinho com escada de degraus alternados, patamar superior, corrimãos, rampa com espessura, bordas arredondadas, suportes e pés. Paleta e materiais seguem os demais brinquedos Ludos. Foram inseridas duas etapas na trajetória: cambalhota curta do patamar para a entrada da rampa e descida pelo mesmo caminho usado para gerar a geometria. A saída da rampa continua sem impulso para cima. Os demais obstáculos mantêm sua ordem e tipos originais.
+
+Conferido o novo brinquedo no navegador desktop e a largura de página móvel. Teste específico cobre a cambalhota, a chegada à entrada, a descida sem salto e a continuidade da saída. Treze testes passaram; build concluído. Alterações locais na developer-2, sem nova publicação.
+
+## Patamar nivelado e giro horizontal nas saídas
+
+Patamar do parquinho e início da rampa compartilham a mesma altura e um único tampo. O quique usa altura própria menor, faz uma cambalhota e retorna à entrada no mesmo nível antes da descida. Nas saídas dos dois tubos fechados, a trajetória continua monotônica para baixo e completa uma rotação de 360° no eixo vertical (yaw), sem mortal ou impulso para cima. A saída do escorregador aberto não recebe esse giro. Treze testes passaram, incluindo altura de retorno do quique e eixos/ângulos dos giros dos dois tubos; build concluído. Alterações locais na developer-2.
+
+## Balanço final e acabamento de sombras — developer-2
+
+O último patamar foi substituído por balanço com estrutura em A, travessa arredondada, pés, ferragens, cordas e assento chanfrado. O pouso usa a base do modelo; após a chegada, assento e personagem compartilham o mesmo movimento pendular. A oscilação continua por tempo enquanto o balanço está visível e o visitante permanece na chegada; ao retornar pelo percurso, o pêndulo para e o personagem retoma a posição da rolagem. O loop contínuo fica restrito à abertura ou ao balanço ativo; é suspenso em aba oculta e no modo de movimento reduzido.
+
+Sombras mudaram para VSM com filtragem e maior resolução (1024 móvel, 2048 desktop), ajuste de bias e maior limite de densidade de pixels. A superfície fina da rampa aberta não recebe sombras de mapa para evitar padrões de auto-sombreamento sobre a malha; iluminação e volume das bordas permanecem. No celular, o balanço tem espaço próprio entre o texto e os personagens do contato.
+
+Verificados no navegador: oscilação sem rolagem em capturas sucessivas, posição desktop/celular, controle de movimento reduzido e console sem erros/avisos. Teste de movimento pendular cobre continuidade e contato do boneco com o assento. Quinze testes passaram. Alterações locais na developer-2.
+
+## Alternância Fred / Amora — developer-2
+
+A cada entrada na página inicial, o percurso alterna Fred (amarelo) e Amora (rosa), começando por Fred quando não há histórico. A última escolha é persistida no armazenamento local do navegador; páginas internas não consomem uma alternância. O retorno à home restaurada pelo cache de navegação também troca o personagem. Se o navegador bloquear o armazenamento, a experiência continua com Fred.
+
+O início do percurso usa a posição do personagem escolhido na composição da abertura. Escala uniforme e contato são recalculados com os limites reais de cada modelo para acomodar ambos em plataformas, tubos e balanço. A troca por restauração da página libera geometrias e materiais do parque anterior. Verificada alternância no navegador por recarregamento e ambos os modelos no balanço; console sem erros. Dezessete testes passaram e build concluído. Trabalho local, ainda sem novo commit/deploy.

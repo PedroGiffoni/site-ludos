@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {createEnclosedSlide} from './park-models.js';
-import {parkPose} from './park-path.js';
+import {createEnclosedSlide,createPlaygroundSlide,createPlaygroundSwing} from './park-models.js';
+import {parkPose,swingMotion} from './park-path.js';
 
 export class HomePark{
   constructor(scene,actor){
     this.scene=scene;this.actor=actor;
-    this.actorFootY=new THREE.Box3().setFromObject(actor).min.y;
+    const bounds=new THREE.Box3().setFromObject(actor);
+    this.actorFootY=bounds.min.y;
+    this.actorFit=Math.min(1,2.22/(bounds.max.y-bounds.min.y));
     this.contactVertices=[];
     actor.traverse(part=>{
       if(!part.isMesh)return;
@@ -25,7 +27,7 @@ export class HomePark{
     this.actorGroup.visible=false;
   }
   mesh(geometry,color,x,y,z=0){const m=new THREE.Mesh(geometry,this.materials[color]);m.position.set(x,-y,z);m.castShadow=true;m.receiveShadow=true;this.group.add(m);return m;}
-  clear(){this.group.traverse(object=>object.geometry?.dispose());this.group.clear();}
+  clear(){this.group.traverse(object=>object.geometry?.dispose());this.group.clear();this.swing=null;this.swingStarted=null;this.isSwinging=false;}
   resize(width,height,hero){
     this.clear();this.width=width;this.height=height;this.hero=hero;
     const mobile=width<761;
@@ -37,12 +39,13 @@ export class HomePark{
     this.end=document.querySelector('#contato').getBoundingClientRect().top+scrollY-height*.28;
     const end=Math.max(start+height*3,this.end);
     const span=end-start;
-    const sx=hero.left+hero.width*.5+.65*hero.width/980*1.05*100;
-    const sy=hero.top+hero.height*.51-.5*hero.width/980*1.05*100;
-    const small=mobile?.21:.37;
+    const heroBase=this.actor.userData.heroBase??[.65,.5,0];
+    const sx=hero.left+hero.width*.5+heroBase[0]*hero.width/980*1.05*100;
+    const sy=hero.top+hero.height*.51-heroBase[1]*hero.width/980*1.05*100;
+    const small=(mobile?.21:.37)*this.actorFit;
     // Each following landing belongs to a physical toy in document space.
     const anchors=[
-      [0,sx,sy,hero.width/980*1.05*1.15,'join'],
+      [0,sx,sy,hero.width/980*1.05*(this.actor.userData.heroScale??1.15),'join'],
       [.055,left,start+height*.56,small,'jump'],
       [.13,right,start+span*.13+height*.55,small,'jump'],
       [.22,left,start+span*.22+height*.55,small,'jump'],
@@ -52,18 +55,42 @@ export class HomePark{
       [.63,left,start+span*.63+height*.55,small,'jump'],
       [.79,right,start+span*.79+height*.55,small,'slide'],
       [.87,left,start+span*.87+height*.55,small,'jump'],
-      [1,right,end+height*.45,small,'jump']
+      [1,right,end+height*.80,small,'jump']
     ];
     this.stops=anchors.map(([fraction,x,y,scale,kind],i)=>({at:start+span*fraction,x,y,scale,kind,lift:mobile?75:130,swing:mobile?8:24,maneuver:i%4===0?'cartwheel':i%3===0?'spin':'flip'}));
+    // Replace the first ball with one complete playground, including a bounce into its ramp.
+    this.stops.forEach((stop,i)=>stop.propIndex=i-1);
+    const lastStop=this.stops.at(-1);lastStop.toy='swing';
+    if(mobile){
+      const groupTop=document.querySelector('#contato>img').getBoundingClientRect().top+scrollY;
+      lastStop.x=width/2;
+      lastStop.y=groupTop-80+this.actorFootY*small*100;
+      lastStop.at=Math.max(this.stops.at(-2).at+height*.1,lastStop.y-height*.65);
+      this.end=lastStop.at;
+    }
+    const top=this.stops[2];top.toy='playground';
+    const rampEntry={...top,at:start+span*.157,x:right-(mobile?9:26),y:top.y,kind:'jump',maneuver:'flip',lift:mobile?55:90,toy:'ramp-entry'};
+    const rampExit={...top,at:start+span*.205,x:left,y:start+span*.205+height*.55,kind:'ramp',swing:mobile?5:16,toy:'ramp-exit'};
+    this.stops.splice(3,0,rampEntry,rampExit);
     const unit=100;
     const actorHalfHeight=-this.actorFootY*small*unit;
     this.toys=[];
-    this.stops.slice(1).forEach((stop,index)=>{
+    this.stops.slice(1).forEach((stop,routeIndex)=>{
+      const index=stop.propIndex;
       const x=stop.x/unit,y=(stop.y-this.actorFootY*stop.scale*unit)/unit;
       const firstPart=this.group.children.length;
       let toy;
+      if(stop.toy==='ramp-entry'||stop.toy==='ramp-exit')return;
+      if(stop.toy==='swing'){
+        this.swing=createPlaygroundSwing(stop,this.actorFootY,this.materials,mobile);
+        this.group.add(this.swing.group);this.toys.push(this.swing.group);return;
+      }
+      if(stop.toy==='playground'){
+        toy=createPlaygroundSlide(stop,rampEntry,rampExit,this.actorFootY,this.materials,mobile);
+        this.group.add(toy);this.toys.push(toy);return;
+      }
       if(stop.kind==='slide'){
-        const prev=this.stops[index];
+        const prev=this.stops[routeIndex];
         const points=[];
         for(let j=0;j<=120;j++){
           const t=j/120;
@@ -119,7 +146,7 @@ export class HomePark{
       this.toys.push(toy);
     });
     this.stops.slice(1).forEach((stop,i)=>{
-      if(stop.kind==='slide')return;
+      if(stop.kind==='slide'||stop.kind==='ramp'||stop.toy==='ramp-entry')return;
       const prev=this.stops[i];
       for(let j=1;j<9;j++){
         const pose=parkPose(this.stops,prev.at+(stop.at-prev.at)*j/9);
@@ -128,10 +155,19 @@ export class HomePark{
     });
     this.group.visible=false;
   }
-  draw(scroll,reduced){
-    const active=scroll>=this.start&&scroll<=this.end+this.height*.8&&!reduced;
+  dispose(){
+    const geometries=new Set(),materials=new Set();
+    for(const root of [this.group,this.actorGroup]){
+      root.traverse(part=>{if(part.geometry)geometries.add(part.geometry);if(part.material)materials.add(part.material);});
+      this.scene.remove(root);
+    }
+    Object.values(this.materials).forEach(material=>materials.add(material));
+    geometries.forEach(geometry=>geometry.dispose());materials.forEach(material=>material.dispose());
+  }
+  draw(scroll,reduced,time=0){
+    const active=scroll>=this.start&&!reduced;
     this.group.visible=active;this.actorGroup.visible=active;
-    if(!active)return false;
+    if(!active){this.isSwinging=false;this.swingStarted=null;return false;}
     const pose=parkPose(this.stops,scroll);
     this.group.position.set(-this.width/200,(this.height/2+scroll)/100,0);
     this.actorGroup.position.set((pose.x-this.width/2)/100,(this.height/2-(pose.y-scroll))/100,1.2);
@@ -140,6 +176,22 @@ export class HomePark{
     this.actor.scale.setScalar(pose.scale*fit);
     this.actor.rotation.set(pose.flip,pose.yaw,pose.tilt+pose.roll);
     this.actorGroup.rotation.set(0,0,0);
+    const seated=this.swing&&pose.segment===this.stops.length-1&&pose.t>=1;
+    const visible=this.actorGroup.position.y>-this.height/200-1&&this.actorGroup.position.y<this.height/200+1;
+    this.isSwinging=!!(seated&&visible);
+    if(this.isSwinging){
+      this.swingStarted??=time;
+      const elapsed=Math.max(0,time-this.swingStarted);
+      const motion=swingMotion(elapsed,this.swing.length,this.actorFootY,pose.scale);
+      const angle=motion.angle;
+      this.swing.pivot.rotation.x=angle;
+      this.actorGroup.position.y+=motion.y;
+      this.actorGroup.position.z+=motion.z;
+      this.actor.rotation.set(angle,0,0);
+    }else{
+      this.swingStarted=null;
+      if(this.swing)this.swing.pivot.rotation.x=0;
+    }
     const rig=this.actor.userData.rig;
     if(rig){
       rig.accessories.position.y=pose.air*.12+pose.landing*.06;
@@ -150,9 +202,3 @@ export class HomePark{
     return true;
   }
 }
-
-
-
-
-
-
